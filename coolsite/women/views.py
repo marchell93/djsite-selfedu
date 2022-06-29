@@ -1,12 +1,12 @@
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import logout, login
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, HttpResponseNotFound, Http404
-from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.views import LoginView
+from django.http import HttpResponse, HttpResponseNotFound
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView
 
-from .forms import AddPostForm, RegisterUserForm
-from .models import Women
+from .forms import AddPostForm, RegisterUserForm, LoginUserForm
 from .utils import *
 
 
@@ -43,10 +43,6 @@ class AddPage(LoginRequiredMixin, DataMixin, CreateView):
 
 def contact(request):
     return HttpResponse('Обратная связь')
-
-
-def login(request):
-    return HttpResponse('Авторизация')
 
 
 class ShowPost(DataMixin, DetailView):
@@ -87,6 +83,29 @@ class RegisterUser(DataMixin, CreateView):
         context = super().get_context_data(**kwargs)
         c_def = self.get_user_context(title='Регистрация')
         return {**context, **c_def}
+
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        return redirect('home')
+
+
+class LoginUser(DataMixin, LoginView):
+    form_class = LoginUserForm
+    template_name = 'women/login.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Авторизация')
+        return {**context, **c_def}
+
+    def get_success_url(self):
+        return reverse_lazy('home')
+
+
+def logout_user(request):
+    logout(request)
+    return redirect('login')
 
 
 def pageNotFound(request, exception):
@@ -134,3 +153,6 @@ def pageNotFound(request, exception):
 #         'cat_selected': cat_slug,
 #     }
 #     return render(request, 'women/index.html', context=context)
+
+# def login(request):
+#     return HttpResponse('Авторизация')
